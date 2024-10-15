@@ -7,7 +7,6 @@ import openai
 from openai import OpenAI
 from system import TeamLeaderAI
 
-
 class BaseAgent:
     def __init__(self, name, knowledge_base):
         self.name = name
