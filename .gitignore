@@ -1,3 +1,14 @@
 .pytest_cache/
 __pycache__/
 .venv/
+real_project/
+__pycache__/agent_health_monitor.cpython-312.pyc
+__pycache__/agents.cpython-312.pyc
+__pycache__/dynamic_thread_pool.cpython-312.pyc
+__pycache__/health_check_manager.cpython-312.pyc
+__pycache__/knowledge_base.cpython-312.pyc
+__pycache__/load_balancer.cpython-312.pyc
+__pycache__/system_monitor.cpython-312.pyc
+__pycache__/system.cpython-312.pyc
+__pycache__/task_monitor.cpython-312.pyc
+__pycache__/task_priority_queue.cpython-312.pyc

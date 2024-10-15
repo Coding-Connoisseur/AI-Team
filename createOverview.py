@@ -4,7 +4,7 @@ def combine_files_in_directory(directory, output_file):
         # Traverse the directory recursively
         for root, dirs, files in os.walk(directory):
             # Ignore directories that start with '__' or are hidden (dot directories)
-            dirs[:] = [d for d in dirs if not d.startswith('__') and not d.startswith('.')]
+            dirs[:] = [d for d in dirs if not d.startswith('__') and not d.startswith('.') and not d.startswith('real')]
             for file in files:
                 # Ignore dot files (hidden files)
                 if file.startswith('.'):
