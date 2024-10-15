@@ -87,7 +87,24 @@ class BaseAgent:
         """
         print(f"{self.name} is changing strategy for task '{task}' to improve performance.")
 
-class ProjectArchitectAI(BaseAgent):
+class EnhancedAgent(BaseAgent):
+    def learn(self, task, outcome):
+        # Enhanced learning method with AI suggestions
+        super().learn(task, outcome)
+
+        if outcome == "failure":
+            self.adjust_strategy(task)
+
+    def adjust_strategy(self, task):
+        print(f"{self.name} is adjusting strategy for task '{task}' due to low success rate.")
+        # Fetch suggestions from an AI model for improvement
+        feedback = self.query_improvements(task)
+        if feedback:
+            # Implement suggestions or log them for human review
+            print(f"Feedback for {task}: {feedback}")
+
+
+class ProjectArchitectAI(EnhancedAgent):
     def __init__(self, knowledge_base):
         super().__init__("Project Architect AI", knowledge_base)
 
@@ -164,7 +181,7 @@ class ProjectArchitectAI(BaseAgent):
                     with open(os.path.join(folder_path, file_name), 'w') as f:
                         f.write(file_content)
 
-class CodeGeneratorAI(BaseAgent):
+class CodeGeneratorAI(EnhancedAgent):
     def __init__(self, knowledge_base):
         super().__init__("Code Generator AI", knowledge_base)
 
@@ -299,7 +316,7 @@ if __name__ == '__main__':
     app.run(debug=True)
             '''
 
-class TestAI(BaseAgent):
+class TestAI(EnhancedAgent):
     def __init__(self, knowledge_base):
         super().__init__("Test AI", knowledge_base)
 
@@ -342,7 +359,7 @@ class TestAI(BaseAgent):
             print(f"Error while running tests: {str(e)}")
             return "failure"
 
-class DebuggingAI(BaseAgent):
+class DebuggingAI(EnhancedAgent):
     def __init__(self, knowledge_base):
         super().__init__("Debugging AI", knowledge_base)
 
@@ -373,7 +390,7 @@ class DebuggingAI(BaseAgent):
             self.learn(task, "failure")
             return "failure"
 
-class EnhancerAI(BaseAgent):
+class EnhancerAI(EnhancedAgent):
     def __init__(self, knowledge_base):
         super().__init__("Enhancer AI", knowledge_base)
 
@@ -411,7 +428,7 @@ def advanced_feature():
             self.learn(task, "failure")
             return "failure"
 
-class DocumentationAI(BaseAgent):
+class DocumentationAI(EnhancedAgent):
     def __init__(self, knowledge_base):
         super().__init__("Documentation AI", knowledge_base)
 
@@ -490,7 +507,7 @@ class DocumentationAI(BaseAgent):
         """
         print(workflow)
 
-class DeploymentAI(BaseAgent):
+class DeploymentAI(EnhancedAgent):
     def __init__(self, knowledge_base):
         super().__init__("Deployment AI", knowledge_base)
 
@@ -530,7 +547,7 @@ CMD ["python", "main.py"]
             self.learn(task, "failure")
             return "failure"
 
-class SecurityAI(BaseAgent):
+class SecurityAI(EnhancedAgent):
     def __init__(self, knowledge_base):
         super().__init__("Security AI", knowledge_base)
 
@@ -588,7 +605,7 @@ class SecurityAI(BaseAgent):
                         f.write(updated_content)
                     print("Weak encryption algorithm fixed.")
 
-class DatabaseAI(BaseAgent):
+class DatabaseAI(EnhancedAgent):
     def __init__(self, knowledge_base):
         super().__init__("Database AI", knowledge_base)
 
@@ -633,7 +650,7 @@ class DatabaseAI(BaseAgent):
             self.learn(task, "failure")
             return "failure"
 
-class LoggingAI(BaseAgent):
+class LoggingAI(EnhancedAgent):
     def __init__(self, knowledge_base):
         super().__init__("Logging AI", knowledge_base)
 
@@ -674,7 +691,7 @@ logging.info("Logging is set up.")
             self.learn(task, "failure")
             return "failure"
 
-class VersionControlAI(BaseAgent):
+class VersionControlAI(EnhancedAgent):
     def __init__(self, knowledge_base):
         super().__init__("Version Control AI", knowledge_base)
 
@@ -793,7 +810,7 @@ ipython_config.py
             self.learn(task, "failure")
             return "failure"
 
-class FrontendGeneratorAI(BaseAgent):
+class FrontendGeneratorAI(EnhancedAgent):
     def __init__(self, knowledge_base):
         super().__init__("Frontend Generator AI", knowledge_base)
 

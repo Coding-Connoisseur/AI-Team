@@ -1,3 +1,7 @@
+from sklearn.tree import DecisionTreeRegressor
+import numpy as np
+import psutil
+
 class LoadBalancer:
     """
     Distributes tasks evenly across available agents to avoid bottlenecks.
@@ -64,3 +68,50 @@ agents = {
     "Frontend Generator AI": FrontendGeneratorAI(knowledge_base)
 }
 """
+
+class AILoadBalancer(LoadBalancer):
+    def __init__(self, agents):
+        super().__init__(agents)
+        self.data_log = []  # Collect data for training
+        self.model = DecisionTreeRegressor()  # Initialize a simple predictive model
+
+    def monitor_resource_usage(self):
+        # Use psutil to get system resource usage
+        cpu_usage = psutil.cpu_percent(interval=1)
+        memory_usage = psutil.virtual_memory().percent
+        disk_usage = psutil.disk_usage('/').percent
+        net_io = psutil.net_io_counters()
+        network_outgoing = net_io.bytes_sent / 1024 / 1024  # Convert to MB
+        return cpu_usage, memory_usage, disk_usage, network_outgoing
+    
+    def collect_data(self, task_name, agent_name, cpu_usage, memory_usage, task_duration, success):
+        # Log data points for training
+        self.data_log.append([cpu_usage, memory_usage, task_duration, int(success)])
+        # Keep log size manageable
+        if len(self.data_log) > 1000:
+            self.data_log.pop(0)
+
+    def train_model(self):
+        # Train model with collected data if there are enough samples
+        if len(self.data_log) >= 50:
+            X = np.array(self.data_log)[:, :3]  # cpu, memory, task duration
+            y = np.array(self.data_log)[:, 3]  # success rate
+            self.model.fit(X, y)
+
+    def assign_task(self, task):
+        # Monitor system and predict optimal assignment
+        cpu_usage, memory_usage, _, _ = self.monitor_resource_usage()
+        task_duration = self.estimate_task_duration(task)  # Placeholder function
+        self.train_model()
+        
+        prediction = self.model.predict([[cpu_usage, memory_usage, task_duration]])
+        optimal_agent_name = self.find_optimal_agent(prediction)  # Placeholder for finding agent based on model
+        
+        # Use prediction to assign task
+        if optimal_agent_name:
+            assigned_agent = next(agent for agent in self.agents if agent.name == optimal_agent_name)
+            print(f"AI LoadBalancer assigned task '{task}' to agent '{optimal_agent_name}'")
+            return assigned_agent
+        else:
+            return super().assign_task(task)  # Fallback to standard method if no optimal agent is found
+

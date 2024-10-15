@@ -1,6 +1,7 @@
 from system import TeamLeaderAI
 from knowledge_base import SharedKnowledgeBase
 from agents import ProjectArchitectAI, CodeGeneratorAI, TestAI, EnhancerAI, DocumentationAI, DeploymentAI, SecurityAI, DatabaseAI, LoggingAI, VersionControlAI, FrontendGeneratorAI, DebuggingAI
+from load_balancer import AILoadBalancer, LoadBalancer
 
 # Initialize the shared knowledge base
 knowledge_base = SharedKnowledgeBase()
@@ -20,17 +21,24 @@ agents = {
     "Frontend Generator AI": FrontendGeneratorAI(knowledge_base),
     "Debugging AI": DebuggingAI(knowledge_base)
 }
+# Initialize the AI-based Load Balancer
+# Initialize the AI-based Load Balancer with the agent objects only
+load_balancer = AILoadBalancer(agents.values())
+
 # Initialize the Team Leader AI
 team_leader = TeamLeaderAI(agents)
+
 # Ask the user what they want the team to do
 team_leader.receive_user_input()
 # Print the task progress
 team_leader.report_progress()
+
 # Store some knowledge in the knowledge base
 knowledge_base.store("key1", "This is some knowledge about task1.")
 knowledge_base.store("key2", "This is some knowledge about task2.")
 # List the shared knowledge base contents:
 knowledge_base.list_contents()
+
 # Retrieve specific knowledge
 task1_knowledge = knowledge_base.get("key1")
 print(f"Retrieved knowledge for task1: {task1_knowledge}")

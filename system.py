@@ -4,7 +4,7 @@ from agent_health_monitor import AgentHealthMonitor
 from system_monitor import SystemMonitor
 from health_check_manager import HealthCheckManager
 from dynamic_thread_pool import DynamicThreadPoolExecutor
-from load_balancer import LoadBalancer
+from load_balancer import LoadBalancer, AILoadBalancer
 import os
 import time
 
@@ -17,7 +17,8 @@ class TeamLeaderAI:
         self.retry_limit = retry_limit
         self.task_retries = {}
         self.thread_pool = DynamicThreadPoolExecutor(max_workers=3)
-        self.load_balancer = LoadBalancer(self.agents.values())  # Reference to LoadBalancer
+        #self.load_balancer = LoadBalancer(self.agents.values())  # Reference to LoadBalancer
+        self.load_balancer = AILoadBalancer(self.agents.values())
         self.task_monitor = TaskMonitor()  # Task monitor for tracking task execution time
         self.agent_health_monitor = AgentHealthMonitor(self.agents.values(), self.load_balancer)
         self.system_monitor = SystemMonitor()  # Monitor system resources
