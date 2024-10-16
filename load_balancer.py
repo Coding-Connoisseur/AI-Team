@@ -1,16 +1,15 @@
 from sklearn.tree import DecisionTreeRegressor
 import numpy as np
 import psutil
+from knowledge_base import SharedKnowledgeBase
+import knowledge_base
 
 class LoadBalancer:
-    """
-    Distributes tasks evenly across available agents to avoid bottlenecks.
-    Now considers agent expertise when assigning tasks.
-    """
-    def __init__(self, agents):
+    def __init__(self, agents, knowledge_base):
         self.agents = agents
+        self.knowledge_base = knowledge_base
         self.agent_loads = {agent.name: 0 for agent in agents}
-        self.agent_expertises = {  # Identifying the best agent for each type of task
+        self.agent_expertises = {
             "architecture design": "Project Architect AI",
             "code generation": "Code Generator AI",
             "debugging": "Debugging AI",
@@ -24,33 +23,65 @@ class LoadBalancer:
             "version control": "Version Control AI",
             "frontend generation": "Frontend Generator AI"
         }
-    def assign_task(self, task):
+
+    def assign_task(self, task_name):
         """
-        Assigns the task to the least busy agent, while also prioritizing agents who are experts at this task.
+        Assigns a task to the least busy or most specialized agent.
+        
+        Args:
+            task_name (str): The name of the task to assign.
+        
+        Returns:
+            The selected agent for the task.
         """
-        # Identify the expert agent for the task
-        expert_agent_name = self.agent_expertises.get(task)
+        expert_agent_name = self.agent_expertises.get(task_name)
         if expert_agent_name:
-            # Ensure the expert agent still exists in the system
-            if expert_agent_name in self.agent_loads:
-                least_busy_expert = expert_agent_name
+            least_busy_agent = min(self.agent_loads, key=self.agent_loads.get)
+            assigned_agent = next((agent for agent in self.agents if agent.name == expert_agent_name), None)
+            if assigned_agent:
+                print(f"Assigned {task_name} to specialized agent: {assigned_agent.name}")
             else:
-                # Fallback to least busy agent if expertise agent is not found
-                least_busy_expert = min(self.agent_loads, key=self.agent_loads.get)
-            print(f"Assigning task '{task}' to the expert agent: {least_busy_expert}.")
+                assigned_agent = next(agent for agent in self.agents if agent.name == least_busy_agent)
+                print(f"Assigned {task_name} to least busy agent: {assigned_agent.name}")
         else:
-            # No specific expertise available, assign to the least busy agent
-            least_busy_expert = min(self.agent_loads, key=self.agent_loads.get)
-            print(f"Assigning task '{task}' to {least_busy_expert}, no specific expertise required.")
-        assigned_agent = next(agent for agent in self.agents if agent.name == least_busy_expert)
-        self.agent_loads[least_busy_expert] += 1
+            assigned_agent = next(agent for agent in self.agents if agent.name == min(self.agent_loads, key=self.agent_loads.get))
+            print(f"Assigned {task_name} to least busy agent: {assigned_agent.name}")
+        
+        self.agent_loads[assigned_agent.name] += 1
         return assigned_agent
+
+    def estimate_task_duration(self, task_name):
+        """
+        Estimates the duration of a task based on past task completion times.
+        
+        Args:
+            task_name (str): The name of the task to estimate.
+        
+        Returns:
+            float: The estimated duration in seconds, or None if there is no data.
+        """
+        task_metadata = self.knowledge_base.get_task_metadata(task_name)
+        
+        if task_metadata:
+            total_time = sum(entry['duration'] for entry in task_metadata)
+            average_duration = total_time / len(task_metadata)
+            print(f"Estimated duration for task '{task_name}': {average_duration:.2f} seconds.")
+            return average_duration
+        else:
+            print(f"No historical data available to estimate duration for task '{task_name}'.")
+            return None
+
     def task_completed(self, agent_name):
         """
-        Marks a task as completed by the given agent, reducing their current load.
+        Marks a task as completed for an agent, reducing their current load.
+        
+        Args:
+            agent_name (str): The name of the agent who completed a task.
         """
         if agent_name in self.agent_loads:
             self.agent_loads[agent_name] = max(0, self.agent_loads[agent_name] - 1)
+            print(f"Marked task completed for agent: {agent_name}")
+
 # Example agents list to simulate load balancer functioning:
 """
 agents = {
@@ -70,10 +101,11 @@ agents = {
 """
 
 class AILoadBalancer(LoadBalancer):
-    def __init__(self, agents):
+    def __init__(self, agents, knowledge_base):
         super().__init__(agents)
         self.data_log = []  # Collect data for training
-        self.model = DecisionTreeRegressor()  # Initialize a simple predictive model
+        self.model = DecisionTreeRegressor()  # Initialize a simple predictive model        
+        knowledge_base_instance = SharedKnowledgeBase()
 
     def monitor_resource_usage(self):
         # Use psutil to get system resource usage
@@ -97,6 +129,29 @@ class AILoadBalancer(LoadBalancer):
             X = np.array(self.data_log)[:, :3]  # cpu, memory, task duration
             y = np.array(self.data_log)[:, 3]  # success rate
             self.model.fit(X, y)
+
+    def estimate_task_duration(self, task_name):
+        """
+        Estimates the duration of a task based on past task completion times.
+
+        Args:
+            task_name (str): The name of the task to estimate. This parameter is a string representing the name of the task.
+
+        Returns:
+            float: The estimated duration in seconds, or None if there is no data. The function returns a float value representing the estimated duration of the task in seconds. If no historical data is available, it returns None.
+        """
+        # Retrieve task metadata from the knowledge base
+        task_metadata = self.knowledge_base.get_task_metadata(task_name)
+
+        # Calculate average duration if metadata is available
+        if task_metadata:
+            total_time = sum(entry['duration'] for entry in task_metadata)
+            average_duration = total_time / len(task_metadata)
+            print(f"Estimated duration for task '{task_name}': {average_duration:.2f} seconds.")
+            return average_duration
+        else:
+            print(f"No historical data available to estimate duration for task '{task_name}'.")
+            return None
 
     def assign_task(self, task):
         # Monitor system and predict optimal assignment

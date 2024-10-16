@@ -7,7 +7,7 @@ import openai
 from openai import OpenAI
 from system import TeamLeaderAI
 
-client = OpenAI(api_key='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')
+client = OpenAI(api_key='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')
 
 class BaseAgent:
     def __init__(self, name, knowledge_base):

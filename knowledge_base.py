@@ -1,18 +1,28 @@
 class SharedKnowledgeBase:
     def __init__(self):
         self.data = {}
-        self.task_metadata = {}  # Ensure task_metadata attribute is defined
-    
+        self.task_metadata = {}
+
     def store(self, key, value):
+        """
+        Stores a key-value pair in the knowledge base.
+        """
         self.data[key] = value
-    
+
     def get(self, key, default=None):
+        """
+        Retrieves a value from the knowledge base by key.
+        Returns the default value if the key is not found.
+        """
         return self.data.get(key, default)
-    
+
     def delete(self, key):
+        """
+        Deletes a key-value pair from the knowledge base by key.
+        """
         if key in self.data:
             del self.data[key]
-    
+
     def list_contents(self):
         """
         Lists all content currently stored in the knowledge base.
@@ -24,7 +34,7 @@ class SharedKnowledgeBase:
             for key, value in self.data.items():
                 print(f"  - {key}: {value}")
         return self.data
-    
+
     def store_task_metadata(self, task_name, metadata):
         """
         Stores metadata for a specific task. Metadata can include details such as task difficulty,

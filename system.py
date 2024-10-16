@@ -4,34 +4,30 @@ from agent_health_monitor import AgentHealthMonitor
 from system_monitor import SystemMonitor
 from health_check_manager import HealthCheckManager
 from dynamic_thread_pool import DynamicThreadPoolExecutor
-from load_balancer import LoadBalancer, AILoadBalancer
+from load_balancer import LoadBalancer
 import os
 import time
 
 class TeamLeaderAI:
-    def __init__(self, agents, retry_limit=3):
+    def __init__(self, agents, knowledge_base, retry_limit=3):
         self.agents = agents
-        self.task_priority_queue = TaskPriorityQueue(SystemMonitor())  # Using SystemMonitor to help with task scheduling
-        self.task_progress = {}  # Track task states: {'task_name': {'status': 'queued/active/completed', 'agent': <agent_name>, 'start_time': <timestamp>}}
-        self.task_completion_data = {}  # Track the details of completed tasks
+        self.knowledge_base = knowledge_base
+        self.task_priority_queue = TaskPriorityQueue(SystemMonitor())
+        self.task_progress = {}  # Track task states
+        self.task_completion_data = {}  # Track completed task details
         self.retry_limit = retry_limit
         self.task_retries = {}
         self.thread_pool = DynamicThreadPoolExecutor(max_workers=3)
-        #self.load_balancer = LoadBalancer(self.agents.values())  # Reference to LoadBalancer
-        self.load_balancer = AILoadBalancer(self.agents.values())
-        self.task_monitor = TaskMonitor()  # Task monitor for tracking task execution time
+        self.load_balancer = LoadBalancer(self.agents.values(), self.knowledge_base)
+        self.task_monitor = TaskMonitor()
         self.agent_health_monitor = AgentHealthMonitor(self.agents.values(), self.load_balancer)
-        self.system_monitor = SystemMonitor()  # Monitor system resources
+        self.system_monitor = SystemMonitor()
         self.health_check_manager = HealthCheckManager(self.system_monitor, self.agent_health_monitor)
         self.project_path = None
         self.active_tasks = {}
         self.completed_tasks = []
-        self.project_type = []
 
     def get_user_input(self):
-        """
-        Asks the user what they want the AI team to do.
-        """
         print("What do you want the AI team to do? Choose from the following options:")
         print("1. Create a whole project")
         print("2. Enhance an existing project")
@@ -42,9 +38,6 @@ class TeamLeaderAI:
         return int(choice)
     
     def ask_for_project_path(self):
-        """
-        Ask the user for the project path and ensure it exists.
-        """
         self.project_path = input("Please enter the path to the project you want to work on: ")
         if not os.path.exists(self.project_path):
             print(f"Error: The specified path {self.project_path} does not exist.")
@@ -52,29 +45,22 @@ class TeamLeaderAI:
         return True
     
     def receive_user_input(self):
-        """
-        Determines what the user wants based on input.
-        """
         choice = self.get_user_input()
         if choice == 1:
             print("You selected to create a whole project.")
-            self.project_type= input("Enter the type of project (e.g., web app, API, machine learning, etc.): ")
+            self.project_type = input("Enter the type of project (e.g., web app, API, machine learning, etc.): ")
             self.decompose_project(f"Create a {self.project_type}")
         elif choice in [2, 3, 4, 5]:
             if not self.ask_for_project_path():
                 return
-            if choice == 2:
-                print("You selected to enhance an existing project.")
-                self.decompose_project("Enhance project")
-            elif choice == 3:
-                print("You selected to debug a project.")
-                self.decompose_project("Debug project")
-            elif choice == 4:
-                print("You selected to add new features and capabilities.")
-                self.decompose_project("Add features and capabilities")
-            elif choice == 5:
-                print("You selected to test a project.")
-                self.decompose_project("Test project")
+            task_overview = {
+                2: "Enhance project",
+                3: "Debug project",
+                4: "Add features and capabilities",
+                5: "Test project"
+            }
+            print(f"You selected to {task_overview[choice].lower()}.")
+            self.decompose_project(task_overview[choice])
         else:
             print("Invalid choice.")
 
@@ -98,13 +84,10 @@ class TeamLeaderAI:
         self.assign_tasks()
 
     def assign_tasks(self):
-        """
-        Assign tasks from the task priority queue to agents.
-        """
         while task_name := self.task_priority_queue.get_next_task():
             agent = self.load_balancer.assign_task(task_name)
             self.thread_pool.submit_task(self.execute_task, agent, task_name)
-            self.update_task_status(task_name, 'active', agent.name)  # Mark task as active
+            self.update_task_status(task_name, 'active', agent.name)
     
     def find_agent_for_task(self, task_name):
         for agent in self.agents.values():
@@ -113,15 +96,11 @@ class TeamLeaderAI:
         return None
     
     def execute_task(self, agent, task_name):
-        """
-        Executes the task using the assigned agent.
-        """
         try:
-            start_time = time.time()  # Track the starting time of the task
+            start_time = time.time()
             self.task_monitor.start_task(task_name)
-            # Execute the task and record its outcome
             outcome = agent.execute_task(task_name)
-            elapsed_time = self.task_monitor.end_task(task_name)  # Track task completion time
+            elapsed_time = self.task_monitor.end_task(task_name)
             self.task_completion_data[task_name] = {
                 'status': 'completed',
                 'agent': agent.name,
@@ -140,8 +119,8 @@ class TeamLeaderAI:
             self.recover_from_failure(task_name)
 
     def recover_from_failure(self, task):
-        if self.task_retries[task] < self.retry_limit:
-            self.task_retries[task] += 1
+        if self.task_retries.get(task, 0) < self.retry_limit:
+            self.task_retries[task] = self.task_retries.get(task, 0) + 1
             agent = self.find_agent_for_task(task)
             if agent:
                 self.execute_task(agent, task)
@@ -149,53 +128,34 @@ class TeamLeaderAI:
             print(f"Task {task} has exceeded the retry limit.")
 
     def update_task_status(self, task_name, status, agent_name):
-        """
-        Updates the task progress status (active, completed, etc.) and records the agent assigned to the task.
-        """
-        self.task_progress[task_name] = {
-            'status': status,
-            'agent': agent_name
-        }
+        self.task_progress[task_name] = {'status': status, 'agent': agent_name}
 
     def mark_task_completed(self, task_name, agent):
-        # Remove from active tasks
         if task_name in self.active_tasks:
             del self.active_tasks[task_name]
-
-        # Add to completed tasks
         self.completed_tasks.append({
             'task': task_name,
             'agent': agent.name,
             'status': 'completed'
         })
-        
-        # Update dashboard
         self.update_dashboard()
 
     def report_progress(self):
-        """
-        Displays a real-time dashboard showing task progress.
-        """
         print("\n--- Task Progress Dashboard ---")
         print("Queued Tasks:")
         print("  No queued tasks.")
         print("\nActive Tasks:")
         for task, agent in self.active_tasks.items():
             print(f"  {task} (Agent: {agent.name})")
-        
         print("\nCompleted Tasks:")
         if not self.completed_tasks:
             print("  No completed tasks.")
         else:
             for task in self.completed_tasks:
                 print(f"  {task['task']} completed by {task['agent']} with status: {task['status']}")
-        
         print("--- End of Dashboard Report ---")
 
     def report_overall_progress(self):
-        """
-        Summarizes overall task progress, including completion rates.
-        """
         total_tasks = len(self.task_progress)
         completed_tasks = len([task for task in self.task_progress if self.task_progress[task]['status'] == 'completed'])
         success_tasks = len([task for task in self.task_completion_data if self.task_completion_data[task]['outcome'] == 'success'])
@@ -208,9 +168,6 @@ class TeamLeaderAI:
         print("\n--- End of Summary ---")
 
     def retry_task(self, task_name, agent_name):
-        """
-        Attempts to retry a failed task a limited number of times.
-        """
         retries = self.task_retries.get(task_name, 0)
         if retries < self.retry_limit:
             print(f"Retrying task '{task_name}' (Attempt {retries + 1}/{self.retry_limit})...")
@@ -220,11 +177,7 @@ class TeamLeaderAI:
             print(f"Task '{task_name}' failed after {self.retry_limit} retries.")
 
     def record_failure(self, task_name, agent):
-        """
-        Record task failure and decide whether to retry based on retry limit.
-        """
-        if task_name not in self.task_retries:
-            self.task_retries[task_name] = 0
+        self.task_retries[task_name] = self.task_retries.get(task_name, 0)
         if self.task_retries[task_name] < self.retry_limit:
             print(f"Task '{task_name}' failed. Retrying...")
             self.retry_task(task_name, agent.name)
