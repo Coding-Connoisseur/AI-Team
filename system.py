@@ -26,6 +26,7 @@ class TeamLeaderAI:
         self.project_path = None
         self.active_tasks = {}
         self.completed_tasks = []
+        self.project_type = None
 
     def get_user_input(self):
         print("What do you want the AI team to do? Choose from the following options:")
@@ -38,11 +39,12 @@ class TeamLeaderAI:
         return int(choice)
     
     def ask_for_project_path(self):
-        self.project_path = input("Please enter the path to the project you want to work on: ")
-        if not os.path.exists(self.project_path):
-            print(f"Error: The specified path {self.project_path} does not exist.")
-            return False
-        return True
+        while True:
+            path = input("Enter the full path to your project directory: ")
+            if os.path.isdir(path):
+                return path
+            else:
+                print("Invalid directory path. Please enter a valid path.")
     
     def receive_user_input(self):
         choice = self.get_user_input()
@@ -85,10 +87,19 @@ class TeamLeaderAI:
 
     def assign_tasks(self):
         while task_name := self.task_priority_queue.get_next_task():
-            agent = self.load_balancer.assign_task(task_name)
-            self.thread_pool.submit_task(self.execute_task, agent, task_name)
-            self.update_task_status(task_name, 'active', agent.name)
-    
+            dependencies = self.task_priority_queue.task_dependencies.get(task_name, set())
+            if not dependencies:
+                agent = self.load_balancer.assign_task(task_name)
+                # Pass project_type if required by the agent
+                if hasattr(agent, 'execute_task'):
+                    self.thread_pool.submit_task(
+                        agent.execute_task, task_name, self.project_type if task_name == "architecture design" else None
+                    )
+                self.update_task_status(task_name, 'active', agent.name)
+            else:
+                print(f"Task '{task_name}' is waiting for dependencies: {dependencies}")
+
+
     def find_agent_for_task(self, task_name):
         for agent in self.agents.values():
             if agent.can_handle(task_name):
@@ -107,10 +118,16 @@ class TeamLeaderAI:
                 'duration': elapsed_time,
                 'outcome': outcome
             }
+            
+            # Mark the task as complete and resolve dependencies
+            self.task_priority_queue.mark_task_complete(task_name)
+            self.update_task_status(task_name, 'completed', agent.name)
             print(f"Task '{task_name}' completed by {agent.name} with outcome: {outcome}")
+
         except Exception as e:
             print(f"Error in executing task '{task_name}' by {agent.name}: {e}")
             self.record_failure(task_name, agent)
+            self.task_priority_queue.update_task_priority(task_name, priority=0)  # Escalate priority on failure
 
     def handle_agent_feedback(self, task_name, result):
         if result == "success":

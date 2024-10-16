@@ -111,12 +111,12 @@ class ProjectArchitectAI(EnhancedAgent):
     def can_handle(self, task):
         return task == "architecture design"
 
-    def execute_task(self, task):
+    def execute_task(self, task, project_type):
         self.adjust_behavior(task)
         print(f"{self.name} is creating the project architecture...")
 
         # Use AI to dynamically generate the project architecture
-        project_structure = self.generate_project_structure()
+        project_structure = self.generate_project_structure(project_type)
 
         # Base path for project
         base_path = "./real_project"
@@ -130,12 +130,12 @@ class ProjectArchitectAI(EnhancedAgent):
         self.learn(task, outcome)
         return outcome
 
-    def generate_project_structure(self):
+    def generate_project_structure(self, project_type):
         """
         Generates a project structure using AI.
         """
         # Prompt AI to design a comprehensive project architecture
-        prompt = "Generate a project architecture for a complex {TeamLeaderAI.project_type}, including directories and essential files for code, tests, documentation, configuration, and deployment."
+        prompt = "Generate a project architecture for a complex {project_type}, including directories and essential files for code, tests, documentation, configuration, and deployment."
 
         try:
             response = client.chat.completions.create(model="gpt-4",
@@ -188,7 +188,7 @@ class CodeGeneratorAI(EnhancedAgent):
     def can_handle(self, task):
         return task == "code generation"
 
-    def execute_task(self, task, project_details=None):
+    def execute_task(self, task, project_details=None, project_type=None):
         """
         Executes the code generation task with a dynamic, advanced prompt based on project details.
         
@@ -206,7 +206,7 @@ class CodeGeneratorAI(EnhancedAgent):
             }
 
         self.adjust_behavior(task)
-        print(f"{self.name} is generating an extremely advanced real-world code...")
+        print(f"{self.name} is generating an advanced code for a {project_type}...")
 
         try:
             # Generate advanced code based on detailed project requirements
@@ -255,7 +255,7 @@ class CodeGeneratorAI(EnhancedAgent):
         technologies = project_details.get("technologies", ["Flask", "Redis", "GraphQL", "Kafka", "Docker"])
 
         prompt = f"""
-Design and implement a sophisticated {TeamLeaderAI.project_type} with an {architecture_style} architecture.
+Design and implement a sophisticated {project_type} with an {architecture_style} architecture.
 The application should include:
 1. {main_features[0]} using JWT and OAuth for secure user authentication.
 2. {main_features[1]} leveraging Kafka for data streaming and Redis for caching.
@@ -266,14 +266,16 @@ The application should include:
 7. Include comprehensive comments, structured documentation, and necessary tests for all modules.
         """
         try:
-            response = client.chat.completions.create(model="gpt-4",
-            messages=[
-                {"role": "system", "content": "You are an AI assistant helping to generate advanced code for a real-world application."},
-                {"role": "user", "content": prompt}
-            ])
-            advanced_code = response.choices[0].text.strip()
+            response = client.chat.completions.create(
+                model="gpt-4",
+                messages=[
+                    {"role": "system", "content": "You are a code-generating AI."},
+                    {"role": "user", "content": prompt}
+                ]
+            )
+            # Correct way to access the response content
+            advanced_code = response.choices[0].message.content.strip()
             return advanced_code
-
         except openai.OpenAIError as e:
             print(f"Error querying OpenAI for advanced code generation: {e}")
             # Provide fallback code if API fails
