@@ -4,8 +4,10 @@ import sqlite3
 import ast
 import inspect
 import openai
-from openai import OpenAI
+from openai import OpenAI, OpenAIError
 from system import TeamLeaderAI
+import re
+from collections import defaultdict
 
 client = OpenAI(api_key='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')
 
@@ -67,9 +69,13 @@ class BaseAgent:
             improvement_suggestions = response.choices[0].message.content.strip()
             print(f"Improvement suggestions for {task_name}: {improvement_suggestions}")
             return improvement_suggestions
+        except OpenAIError as e:
+            print(f"OpenAI API Error: {e}")
+        except ValueError as ve:
+            print(f"Value Error: {ve}")
         except Exception as e:
-            print(f"Error querying AI for improvements: {e}")
-            return None
+            print(f"Unexpected Error: {e}")
+        
     def adjust_behavior(self, task):
         """
         Adjusts the agent's behavior based on its success rate for the given task.
@@ -111,75 +117,144 @@ class ProjectArchitectAI(EnhancedAgent):
     def can_handle(self, task):
         return task == "architecture design"
 
-    def execute_task(self, task, project_type):
+    def execute_task(self, task):
         self.adjust_behavior(task)
-        print(f"{self.name} is creating the project architecture...")
+        print(f"{self.name} is dynamically creating a highly sophisticated project architecture...")
 
-        # Use AI to dynamically generate the project architecture
-        project_structure = self.generate_project_structure(project_type)
-
-        # Base path for project
-        base_path = "./real_project"
+        # Generate a project structure dynamically based on AI analysis
+        project_structure = self.generate_project_structure()
+        base_path = "./dynamic_project"
         os.makedirs(base_path, exist_ok=True)
 
-        # Create directories and files based on AI suggestions
+        # Create the project files and directories
         self.create_structure(base_path, project_structure)
+        print(f"Dynamic project structure created by {self.name}.")
 
-        print(f"Real-world project structure created by {self.name}.")
+        # Learning phase
         outcome = "success"
         self.learn(task, outcome)
         return outcome
 
-    def generate_project_structure(self, project_type):
+    def generate_project_structure(self):
         """
-        Generates a project structure using AI.
+        Dynamically generates a project structure based on AI-driven analysis
+        of the project type and requirements.
         """
-        # Prompt AI to design a comprehensive project architecture
-        prompt = "Generate a project architecture for a complex {project_type}, including directories and essential files for code, tests, documentation, configuration, and deployment."
+        # Use OpenAI to analyze and generate the project structure
+        prompt = (
+            f"Generate a modular and scalable file structure for a complex {TeamLeaderAI.project_type} project. "
+            f"Include directories for services, handlers, utilities, tests, and documentation, with emphasis on "
+            f"advanced architecture patterns suitable for large-scale applications."
+        )
 
         try:
-            response = client.chat.completions.create(model="gpt-4",
-            messages=[
-                {"role": "system", "content": "You are an AI assistant helping to generate a project architecture for a complex web application, including directories and essential files for code, tests, documentation, configuration, and deployment."},
-                {"role": "user", "content": prompt}
-            ])
-            # Extract structure as a dictionary
-            ai_structure = eval(response.choices[0].text.strip())  # Caution: Only use eval with trusted sources
-            return ai_structure
+            response = client.chat.completions.create(
+                model="gpt-4",
+                messages=[
+                    {"role": "system", "content": "You are an expert software architect."},
+                    {"role": "user", "content": prompt}
+                ]
+            )
 
-        except openai.OpenAIError as e:
-            print(f"Error querying OpenAI for project structure: {e}")
-            # Default fallback structure if AI call fails
-            return {
-                "src": {
-                    "main.py": "# Main entry point",
-                    "utils.py": "# Utility functions",
-                    "tests": {
-                        "test_main.py": "# Test cases for main"
-                    }
-                },
-                "docs": {
-                    "README.md": "# Project documentation"
-                },
-                "db": {},
-                "logs": {},
-            }
+            structure_description = response.choices[0].message["content"]
+            # Parse AI response to generate a dictionary representing the structure
+            project_structure = self.parse_structure(structure_description)
+            return project_structure
 
-    def create_structure(self, base_path, structure):
+        except OpenAIError as e:
+            print(f"OpenAI API Error: {e}")
+        except ValueError as ve:
+            print(f"Value Error: {ve}")
+        except Exception as e:
+            print(f"Error generating project structure: {e}")
+            return self.fallback_structure()
+
+    def parse_structure(self, structure_description):
         """
-        Recursively creates directories and files based on the provided structure.
+        Parses a text description of a file structure into a nested dictionary.
+        This implementation assumes that the AI output contains indented or
+        listed directories and files with potential comments or placeholders for content.
         """
-        for folder, contents in structure.items():
+        structure = defaultdict(dict)
+        current_path = [structure]
+
+        lines = structure_description.split('\n')
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+
+            # Detect level of indentation to determine hierarchy
+            indent_level = len(re.match(r"^(\s*)", line).group(1)) // 2  # Assuming 2 spaces per level
+
+            # Update current path to match the indent level
+            current_path = current_path[:indent_level + 1]
+            parent = current_path[-1]
+
+            # Match directory structure and files with or without content
+            dir_match = re.match(r"^(.*):$", line)  # Directories end with a colon ":"
+            file_match = re.match(r"^(.+?)\s*-\s*(.*)$", line)  # Files in the form "filename - content"
+            empty_file_match = re.match(r"^(.+?)$", line)  # Files with no content described
+
+            if dir_match:
+                # Add a new directory to the current parent
+                dir_name = dir_match.group(1).strip()
+                parent[dir_name] = {}
+                current_path.append(parent[dir_name])
+            elif file_match:
+                # Add a file with specific content to the current parent
+                file_name, content = file_match.groups()
+                parent[file_name.strip()] = content.strip()
+            elif empty_file_match:
+                # Add an empty file or file with implied content
+                file_name = empty_file_match.group(1).strip()
+                parent[file_name] = "# Content placeholder"  # Default content if none provided
+
+        return dict(structure)
+
+    def fallback_structure(self):
+        """
+        Provides a fallback structure if the AI generation fails.
+        """
+        return {
+            "src": {"__init__.py": ""},
+            "docs": {"README.md": "# Documentation"},
+            "config": {"config.yaml": "# Configurations"},
+        }
+
+    def create_structure(self, base_path, project_structure):
+        """
+        Recursively creates directories and files based on the provided structure with validation and error handling.
+        
+        Args:
+            base_path (str): The root directory where the project structure will be created.
+            project_structure (dict): Nested dictionary representing the directories and files to create.
+        """
+        for folder, contents in project_structure.items():
             folder_path = os.path.join(base_path, folder)
-            os.makedirs(folder_path, exist_ok=True)
+            
+            # Attempt to create the directory and handle potential errors
+            try:
+                os.makedirs(folder_path, exist_ok=True)
+                print(f"Directory created or already exists: {folder_path}")
+            except OSError as e:
+                print(f"Failed to create directory '{folder_path}': {e}")
+                continue  # Skip this directory and continue with the next one
+            
             for file_name, file_content in contents.items():
                 if isinstance(file_content, dict):
-                    # Recursively create subdirectories and files
+                    # Recursive call to handle subdirectories
                     self.create_structure(folder_path, {file_name: file_content})
                 else:
-                    # Create files with content
-                    with open(os.path.join(folder_path, file_name), 'w') as f:
-                        f.write(file_content)
+                    file_path = os.path.join(folder_path, file_name)
+                    try:
+                        # Attempt to create the file and write content
+                        with open(file_path, 'w') as f:
+                            f.write(file_content)
+                        print(f"File created: {file_path}")
+                    except IOError as e:
+                        print(f"Failed to create file '{file_path}': {e}")
+                        # Optionally log this error or handle it as necessary
 
 class CodeGeneratorAI(EnhancedAgent):
     def __init__(self, knowledge_base):
@@ -232,7 +307,10 @@ class CodeGeneratorAI(EnhancedAgent):
 
             self.learn(task, "success")
             return "success"
-
+        except OpenAIError as e:
+            print(f"OpenAI API Error: {e}")
+        except ValueError as ve:
+            print(f"Value Error: {ve}")
         except Exception as e:
             print(f"Error during code generation: {e}")
             self.learn(task, "failure")
@@ -276,7 +354,12 @@ The application should include:
             # Correct way to access the response content
             advanced_code = response.choices[0].message.content.strip()
             return advanced_code
-        except openai.OpenAIError as e:
+        
+        except OpenAIError as e:
+            print(f"OpenAI API Error: {e}")
+        except ValueError as ve:
+            print(f"Value Error: {ve}")
+        except Exception as e:
             print(f"Error querying OpenAI for advanced code generation: {e}")
             # Provide fallback code if API fails
             return '''
@@ -356,7 +439,10 @@ class TestAI(EnhancedAgent):
             else:
                 print("Some tests failed.")
                 return "failure"
-
+        except OpenAIError as e:
+            print(f"OpenAI API Error: {e}")
+        except ValueError as ve:
+            print(f"Value Error: {ve}")
         except Exception as e:
             print(f"Error while running tests: {str(e)}")
             return "failure"
@@ -386,7 +472,11 @@ class DebuggingAI(EnhancedAgent):
 
             self.learn(task, "success")
             return "success"
-
+        
+        except OpenAIError as e:
+            print(f"OpenAI API Error: {e}")
+        except ValueError as ve:
+            print(f"Value Error: {ve}")
         except Exception as e:
             print(f"Error during debugging: {e}")
             self.learn(task, "failure")
@@ -425,6 +515,10 @@ def advanced_feature():
             self.learn(task, "success")
             return "success"
 
+        except OpenAIError as e:
+            print(f"OpenAI API Error: {e}")
+        except ValueError as ve:
+            print(f"Value Error: {ve}")
         except Exception as e:
             print(f"Error during enhancement: {e}")
             self.learn(task, "failure")
@@ -543,7 +637,11 @@ CMD ["python", "main.py"]
 
             self.learn(task, "success")
             return "success"
-
+        
+        except OpenAIError as e:
+            print(f"OpenAI API Error: {e}")
+        except ValueError as ve:
+            print(f"Value Error: {ve}")
         except Exception as e:
             print(f"Error during deployment: {e}")
             self.learn(task, "failure")
@@ -582,6 +680,11 @@ class SecurityAI(EnhancedAgent):
                 self.knowledge_base.store("security_audit_improvements", improvement_suggestions)
 
             return "success"
+        
+        except OpenAIError as e:
+            print(f"OpenAI API Error: {e}")
+        except ValueError as ve:
+            print(f"Value Error: {ve}")
         except Exception as e:
             print(f"Failed to fix vulnerabilities: {str(e)}")
             return "failure"
@@ -687,7 +790,11 @@ logging.info("Logging is set up.")
 
             self.learn(task, "success")
             return "success"
-
+        
+        except OpenAIError as e:
+            print(f"OpenAI API Error: {e}")
+        except ValueError as ve:
+            print(f"Value Error: {ve}")
         except Exception as e:
             print(f"Error during logging setup: {e}")
             self.learn(task, "failure")
@@ -806,7 +913,11 @@ ipython_config.py
 
             self.learn(task, "success")
             return "success"
-
+        
+        except OpenAIError as e:
+            print(f"OpenAI API Error: {e}")
+        except ValueError as ve:
+            print(f"Value Error: {ve}")
         except subprocess.CalledProcessError as e:
             print(f"Failed to initialize Git repository: {e}")
             self.learn(task, "failure")
@@ -876,6 +987,10 @@ h1 {
             self.learn(task, "success")
             return "success"
 
+        except OpenAIError as e:
+            print(f"OpenAI API Error: {e}")
+        except ValueError as ve:
+            print(f"Value Error: {ve}")
         except Exception as e:
             print(f"Error during frontend generation: {e}")
             self.learn(task, "failure")

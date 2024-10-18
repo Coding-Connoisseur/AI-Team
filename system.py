@@ -136,13 +136,28 @@ class TeamLeaderAI:
             self.recover_from_failure(task_name)
 
     def recover_from_failure(self, task):
-        if self.task_retries.get(task, 0) < self.retry_limit:
-            self.task_retries[task] = self.task_retries.get(task, 0) + 1
+        """
+        Attempts to retry the task with exponential backoff.
+        
+        Args:
+            task (str): The task to retry.
+        """
+        max_delay = 60  # Set a maximum delay to avoid excessively long waits
+        base_delay = 1  # Initial delay in seconds
+
+        # Calculate the delay based on the current retry count with exponential backoff
+        retries = self.task_retries.get(task, 0)
+        delay = min(base_delay * (2 ** retries), max_delay)
+
+        if retries < self.retry_limit:
+            self.task_retries[task] = retries + 1
+            print(f"Retrying task '{task}' with a delay of {delay} seconds (Attempt {retries + 1}/{self.retry_limit}).")
+            time.sleep(delay)  # Apply exponential backoff delay
             agent = self.find_agent_for_task(task)
             if agent:
                 self.execute_task(agent, task)
         else:
-            print(f"Task {task} has exceeded the retry limit.")
+            print(f"Task '{task}' has exceeded the retry limit after {retries} attempts.")
 
     def update_task_status(self, task_name, status, agent_name):
         self.task_progress[task_name] = {'status': status, 'agent': agent_name}

@@ -45,20 +45,56 @@ class TaskPriorityQueue:
 
     def get_next_task(self):
         """
-        Retrieves the next available task based on priority and dependencies.
+        Retrieves the next task if its dependencies are met, handling circular dependencies.
+
+        Returns:
+            str or None: Task name if available, otherwise None.
         """
-        for i, (priority, task_name, priority_level) in enumerate(self.tasks):
-            if task_name not in self.task_dependencies:
-                return heapq.heappop(self.tasks)[1]  # Return task name without dependencies
+        visited = set()
 
-            # Check if dependencies are completed
-            if all(dep not in self.task_dependencies for dep in self.task_dependencies[task_name]):
-                # Remove dependencies and task from queue
-                del self.task_dependencies[task_name]
-                return heapq.heappop(self.tasks)[1]
+        while self.tasks:
+            _, task_name, _ = self.tasks[0]
 
-        print("No tasks available due to unresolved dependencies.")
+            if self._is_circular_dependency(task_name, visited):
+                print(f"Circular dependency detected for task '{task_name}'. Skipping task.")
+                heapq.heappop(self.tasks)  # Remove the task from queue and continue
+                continue
+
+            # Check if dependencies are resolved
+            if all(dep not in self.task_dependencies for dep in self.task_dependencies.get(task_name, set())):
+                heapq.heappop(self.tasks)
+
+                # Only attempt to delete if task_name exists in task_dependencies
+                if task_name in self.task_dependencies:
+                    del self.task_dependencies[task_name]
+                return task_name
+            else:
+                # Dependencies not resolved, continue to the next task
+                heapq.heappop(self.tasks)
+
+        print("No tasks available or all have unresolved dependencies.")
         return None
+
+    def _is_circular_dependency(self, task_name, visited):
+        """
+        Detects circular dependencies using a depth-first search.
+
+        Args:
+            task_name (str): The task to check for circular dependencies.
+            visited (set): Set of tasks visited in the current path.
+
+        Returns:
+            bool: True if a circular dependency is detected, otherwise False.
+        """
+        if task_name in visited:
+            return True
+
+        visited.add(task_name)
+        for dep in self.task_dependencies.get(task_name, []):
+            if self._is_circular_dependency(dep, visited):
+                return True
+        visited.remove(task_name)
+        return False
     
     def display_pending_tasks(self):
         """

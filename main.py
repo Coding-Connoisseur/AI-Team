@@ -31,8 +31,8 @@ team_leader = TeamLeaderAI(agents, knowledge_base)
 # Ask the user what they want the team to do
 team_leader.receive_user_input()
 
-# Display the progress of task assignments and completions
-team_leader.report_progress()
+# Assign tasks to the agents based on their availability and priorities
+team_leader.assign_tasks()
 
 # Example usage of the knowledge base
 knowledge_base.store("example_key", "Example knowledge")
