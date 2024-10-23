@@ -28,6 +28,10 @@ class TeamLeaderAI:
         self.completed_tasks = []
         self.project_type = None
 
+        # Subscribe to task status updates
+        for task in self.active_tasks.keys():
+            self.knowledge_base.subscribe_to_updates(task, self.on_task_update)
+
     def get_user_input(self):
         print("What do you want the AI team to do? Choose from the following options:")
         print("1. Create a whole project")
@@ -37,7 +41,7 @@ class TeamLeaderAI:
         print("5. Test a project")
         choice = input("Enter the number of your choice: ")
         return int(choice)
-    
+
     def ask_for_project_path(self):
         while True:
             path = input("Enter the full path to your project directory: ")
@@ -45,7 +49,7 @@ class TeamLeaderAI:
                 return path
             else:
                 print("Invalid directory path. Please enter a valid path.")
-    
+
     def receive_user_input(self):
         choice = self.get_user_input()
         if choice == 1:
@@ -105,7 +109,7 @@ class TeamLeaderAI:
             if agent.can_handle(task_name):
                 return agent
         return None
-    
+
     def execute_task(self, agent, task_name):
         try:
             start_time = time.time()
@@ -118,7 +122,7 @@ class TeamLeaderAI:
                 'duration': elapsed_time,
                 'outcome': outcome
             }
-            
+
             # Mark the task as complete and resolve dependencies
             self.task_priority_queue.mark_task_complete(task_name)
             self.update_task_status(task_name, 'completed', agent.name)
@@ -138,7 +142,7 @@ class TeamLeaderAI:
     def recover_from_failure(self, task):
         """
         Attempts to retry the task with exponential backoff.
-        
+
         Args:
             task (str): The task to retry.
         """
@@ -161,6 +165,20 @@ class TeamLeaderAI:
 
     def update_task_status(self, task_name, status, agent_name):
         self.task_progress[task_name] = {'status': status, 'agent': agent_name}
+
+    def on_task_update(self, key, value):
+        """
+        Callback to handle task updates when the status of a task is changed in the knowledge base.
+
+        Args:
+            key (str): The task name that was updated.
+            value (any): The new value for the task (e.g., completion status).
+        """
+        print(f"Task '{key}' has been updated with value: {value}")
+
+        # Handle task completion
+        if value == 'completed':
+            self.mark_task_completed(key)
 
     def mark_task_completed(self, task_name, agent):
         if task_name in self.active_tasks:
