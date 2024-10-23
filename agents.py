@@ -13,11 +13,8 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
-# Access environment variables
-api_key = os.getenv("OPENAI_API_KEY")
-
-# Initialize OpenAI API client
-client = OpenAI(api_key)
+# Access environment variables and Initialize OpenAI API client
+OpenAI.api_key = os.getenv("OPENAI_API_KEY")
 
 class BaseAgent:
     def __init__(self, name, knowledge_base):
