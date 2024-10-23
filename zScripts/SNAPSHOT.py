@@ -7,19 +7,24 @@ from importlib.metadata import distributions  # Replacement for pkg_resources
 
 # List of files and directories to ignore
 IGNORE_LIST = [
+    '.env',
     '__pycache__/',
     '.pytest_cache/',
     '.venv/',
     '.git',
     'zScripts/',
+    'zScripts/SNAPSHOT.py',
     '.gitignore',
     'requirements.txt',
     'setup.py',
     'package.json',
-    'node_modules/'
+    'node_modules/',
+    'real_project/src',
+    'zDocs/'
 ]
 
 def should_ignore(path):
+    """Check if the given path matches any of the ignore patterns."""
     for ignore in IGNORE_LIST:
         if ignore in path:
             return True
@@ -27,7 +32,6 @@ def should_ignore(path):
 
 def get_system_info():
     """Capture system information like OS, Python version, and installed libraries."""
-    # Use importlib.metadata for installed libraries
     installed_libraries = [f"{dist.metadata['Name']}=={dist.version}" for dist in distributions()]
     return {
         "os": platform.system(),
@@ -58,13 +62,12 @@ def get_function_calls(file_path):
         if isinstance(node, ast.FunctionDef):
             function_name = node.name
             calls = []
-            # Collect calls made inside the function
             for sub_node in ast.walk(node):
                 if isinstance(sub_node, ast.Call) and isinstance(sub_node.func, ast.Name):
                     calls.append(sub_node.func.id)
             function_calls[function_name] = {
                 "outgoing_calls": calls,
-                "incoming_calls": []  # To be populated later
+                "incoming_calls": []
             }
 
     return function_calls
