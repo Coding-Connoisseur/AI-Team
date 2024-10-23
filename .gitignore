@@ -1,5 +1,5 @@
 .pytest_cache/
 .venv/
 real_project
-.env/
+.env
 __pycache__/
