@@ -8,8 +8,16 @@ from openai import OpenAI, OpenAIError
 from system import TeamLeaderAI
 import re
 from collections import defaultdict
+from dotenv import load_dotenv
 
-client = OpenAI(api_key='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')
+# Load environment variables from .env file
+load_dotenv()
+
+# Access environment variables
+api_key = os.getenv("OPENAI_API_KEY")
+
+# Initialize OpenAI API client
+client = OpenAI(api_key)
 
 class BaseAgent:
     def __init__(self, name, knowledge_base):
@@ -75,7 +83,7 @@ class BaseAgent:
             print(f"Value Error: {ve}")
         except Exception as e:
             print(f"Unexpected Error: {e}")
-        
+
     def adjust_behavior(self, task):
         """
         Adjusts the agent's behavior based on its success rate for the given task.
@@ -225,14 +233,14 @@ class ProjectArchitectAI(EnhancedAgent):
     def create_structure(self, base_path, project_structure):
         """
         Recursively creates directories and files based on the provided structure with validation and error handling.
-        
+
         Args:
             base_path (str): The root directory where the project structure will be created.
             project_structure (dict): Nested dictionary representing the directories and files to create.
         """
         for folder, contents in project_structure.items():
             folder_path = os.path.join(base_path, folder)
-            
+
             # Attempt to create the directory and handle potential errors
             try:
                 os.makedirs(folder_path, exist_ok=True)
@@ -240,7 +248,7 @@ class ProjectArchitectAI(EnhancedAgent):
             except OSError as e:
                 print(f"Failed to create directory '{folder_path}': {e}")
                 continue  # Skip this directory and continue with the next one
-            
+
             for file_name, file_content in contents.items():
                 if isinstance(file_content, dict):
                     # Recursive call to handle subdirectories
@@ -266,7 +274,7 @@ class CodeGeneratorAI(EnhancedAgent):
     def execute_task(self, task, project_details=None, project_type=None):
         """
         Executes the code generation task with a dynamic, advanced prompt based on project details.
-        
+
         Args:
             task (str): The task to be performed.
             project_details (dict, optional): Specific details for the project, such as the type of app, features, or required technologies.
@@ -319,10 +327,10 @@ class CodeGeneratorAI(EnhancedAgent):
     def generate_advanced_code(self, project_details):
         """
         Generates highly advanced, AI-driven code for a real-world application.
-        
+
         Args:
             project_details (dict): Specific requirements or features for the project.
-        
+
         Returns:
             str: Generated code content.
         """
@@ -354,7 +362,7 @@ The application should include:
             # Correct way to access the response content
             advanced_code = response.choices[0].message.content.strip()
             return advanced_code
-        
+
         except OpenAIError as e:
             print(f"OpenAI API Error: {e}")
         except ValueError as ve:
@@ -472,7 +480,7 @@ class DebuggingAI(EnhancedAgent):
 
             self.learn(task, "success")
             return "success"
-        
+
         except OpenAIError as e:
             print(f"OpenAI API Error: {e}")
         except ValueError as ve:
@@ -637,7 +645,7 @@ CMD ["python", "main.py"]
 
             self.learn(task, "success")
             return "success"
-        
+
         except OpenAIError as e:
             print(f"OpenAI API Error: {e}")
         except ValueError as ve:
@@ -680,7 +688,7 @@ class SecurityAI(EnhancedAgent):
                 self.knowledge_base.store("security_audit_improvements", improvement_suggestions)
 
             return "success"
-        
+
         except OpenAIError as e:
             print(f"OpenAI API Error: {e}")
         except ValueError as ve:
@@ -790,7 +798,7 @@ logging.info("Logging is set up.")
 
             self.learn(task, "success")
             return "success"
-        
+
         except OpenAIError as e:
             print(f"OpenAI API Error: {e}")
         except ValueError as ve:
@@ -913,7 +921,7 @@ ipython_config.py
 
             self.learn(task, "success")
             return "success"
-        
+
         except OpenAIError as e:
             print(f"OpenAI API Error: {e}")
         except ValueError as ve:
