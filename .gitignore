@@ -4,3 +4,4 @@ real_project
 .env
 __pycache__/
 .gitignore
+Design/

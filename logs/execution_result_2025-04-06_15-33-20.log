@@ -1,0 +1,14 @@
+[CMD] python3 projects/gtk_chat_client/chat_client.py
+
+[OUTPUT]
+
+[ERRORS]
+/home/obsidian/Github/AI-Team/projects/gtk_chat_client/chat_client.py:3: PyGIWarning: Gtk was imported without specifying a version first. Use gi.require_version('Gtk', '4.0') before import to ensure that the right version gets loaded.
+  from gi.repository import Gtk
+Traceback (most recent call last):
+  File "/home/obsidian/Github/AI-Team/projects/gtk_chat_client/chat_client.py", line 46, in <module>
+    handler = ChatBotHandler()
+  File "/home/obsidian/Github/AI-Team/projects/gtk_chat_client/chat_client.py", line 14, in __init__
+    self.builder.add_from_file("your_glade_file.glade")
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+gi.repository.GLib.GError: g-file-error-quark: Failed to open file “your_glade_file.glade”: No such file or directory (4)
