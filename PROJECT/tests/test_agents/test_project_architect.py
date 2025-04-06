@@ -1,1 +1,0 @@
-# Placeholder content for test_project_architect.py

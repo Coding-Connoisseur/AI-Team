@@ -1,1 +1,0 @@
-# Placeholder content for knowledge_base.py

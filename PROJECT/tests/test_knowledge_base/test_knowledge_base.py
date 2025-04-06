@@ -1,1 +1,0 @@
-# Placeholder content for test_knowledge_base.py
