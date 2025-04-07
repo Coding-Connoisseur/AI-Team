@@ -1,0 +1,48 @@
+[CMD] python3 projects/gtk_chat_client/chat_client.py
+
+[OUTPUT]
+[?1049h[22;0;0t[1;24r(B[m[4l[?7h[?25l[?1h=[H[2J[13;41H(0[0m{(B[13;22H(0[0ma(B(0[0ma(B(0[0ma(B (0[0maaa(B (0[0maaa(B (0[0maaa(B (0[0maaa(B (0[0maaa(B (0[0maaa(B (0[0maaa(B (0[0maaa(B (0[0maaa(B (0[0maaa(B (0[0maaa(B (0[0maaa(B (0[0maaa(B (0[0maaa(B (0[0maaa(B (0[0maaa(B(0[0ma(B[18;65H(0[0m{(B[13;42H(0[0m(B
+[13;38H (0[0maaaa(B
+[13;39H (0[0maaaa(B
+[13;40H (0[0maaaa(B
+[13;41H (0[0maaaa(B
+[13;42H (0[0maaaa(B
+[13;43H (0[0maaaa(B
+[13;44H (0[0maaaa(B
+[13;45H (0[0maaaa(B
+[13;46H (0[0maaaa(B
+[13;47H (0[0maaaa(B
+[13;48H (0[0maaaa(B
+[13;49H (0[0maaaa(B
+[13;50H (0[0maaaa(B
+[13;51H (0[0maaaa(B
+[13;52H (0[0maaaa(B
+[13;53H (0[0maaaa(B
+[13;54H (0[0maaaa(B
+[13;55H (0[0maaaa(B
+[13;56H (0[0maaaa(B
+[13;57H (0[0maaaa(B
+[13;58H (0[0maaaa(B
+[13;59H (0[0maaaa(B
+[13;60H (0[0maaaa(B
+[13;61H (0[0maaaa(B
+[13;62H (0[0maaaa(B
+[13;63H (0[0maaaa(B
+[13;64H (0[0maaaa(B
+[13;65H (0[0maaaa(B
+[13;66H (0[0maaaa(B
+[13;67H (0[0maaaa(B
+[13;68H (0[0maaaa(B
+[13;69H (0[0maaaa(B
+[13;70H (0[0maaaa(B
+[13;71H (0[0maaaa(B
+[13;72H (0[0maaaa(B
+[73G (0[0maaaa(B
+[74G (0[0maaaa(B
+[75G (0[0maaaa(B (0[0maaaa(B[14;1H(0[0m(B
+[ERRORS]
+Traceback (most recent call last):
+  File "/home/obsidian/Github/AI-Team/projects/gtk_chat_client/chat_client.py", line 63, in <module>
+    w.addch(int(snake[0][0]), int(snake[0][1]), curses.ACS_CKBOARD)
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_curses.error: addch() returned ERR

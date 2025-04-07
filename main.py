@@ -7,12 +7,15 @@ from agents.agent_review import AgentReview
 from agents.agent_ops import AgentOps
 from agents.agent_sanitizer import AgentSanitizer
 
+
 def log_to_file(filename, content):
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     path = f"logs/{filename}_{timestamp}.log"
+    os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w") as f:
         f.write(content)
     return path
+
 
 def clean_triple_backticks(path):
     if not os.path.exists(path):
@@ -22,6 +25,15 @@ def clean_triple_backticks(path):
     cleaned = [line for line in lines if not line.strip().startswith("```")]
     with open(path, "w") as f:
         f.writelines(cleaned)
+
+
+def create_dynamic_project_dir(task):
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    task_slug = task.lower().replace(" ", "_").replace("/", "_")
+    directory = f"projects/{task_slug}_{timestamp}"
+    os.makedirs(directory, exist_ok=True)
+    return directory
+
 
 async def main():
     task = input("Enter a task for the team: ")
@@ -33,15 +45,14 @@ async def main():
     sanitizer = AgentSanitizer("python")
 
     print("\n[Agent Core is planning...]\n")
-    plan = await core.respond(f"Break down the task: {task}")
+    plan = await core.respond(f"Break down the task and generate the expected file structure and responsibilities for: {task}")
     print(plan)
 
     print("\n[Agent Build is implementing...]\n")
-    code = await build.respond(f"Based on this plan, generate code: {plan}")
-    print(code)
+    file_map = await build.respond(f"Generate code files and contents for this task and structure: {plan}")
 
     print("\n[Agent Review is reviewing the result...]\n")
-    feedback = await review.respond(f"Please review this output:\n{code}")
+    feedback = await review.respond(f"Please review this multi-file project:{file_map}")
     print(feedback)
 
     print("\n[Agent Core is requesting execution verdict from Agent Review...]\n")
@@ -52,14 +63,18 @@ async def main():
     verdict = await review.respond(verdict_prompt)
     print(verdict)
 
-    ops.create_directory("projects/gtk_chat_client/")
-    script_path = "projects/gtk_chat_client/chat_client.py"
+    project_dir = create_dynamic_project_dir(task)
+    script_path = os.path.join(project_dir, "main.py")
 
     if "yes" in verdict.lower():
-        clean_code = await sanitizer.sanitize(code)
-        ops.create_file(script_path, clean_code)
-
-        clean_triple_backticks(script_path)
+        print("\n[Agent Ops is writing files and sanitizing...]\n")
+        for filename, raw_code in file_map.items():
+            abs_path = os.path.join(project_dir, filename)
+            os.makedirs(os.path.dirname(abs_path), exist_ok=True)
+            clean_code = await sanitizer.sanitize(raw_code)
+            with open(abs_path, "w") as f:
+                f.write(clean_code)
+            clean_triple_backticks(abs_path)
 
         print("\n[Agent Ops is validating Python syntax before execution...]\n")
         validation = ops.validate_python_syntax(script_path)
@@ -74,15 +89,14 @@ async def main():
             log_to_file("execution_result", result)
     else:
         print("\n[Agent Core is requesting Agent Build to fix issues based on review...]\n")
-        fix_prompt = core.instruct_build_to_fix(feedback, code)
-        revised_code = await build.respond(fix_prompt)
-        clean_revised_code = await sanitizer.sanitize(revised_code)
+        fix_prompt = core.instruct_build_to_fix(feedback, str(file_map))
+        revised_files = await build.respond(fix_prompt)
 
         print("\n[Agent Build - Revised Code]\n")
-        print(clean_revised_code)
+        print(revised_files)
 
         print("\n[Agent Review is re-reviewing the revised code...]\n")
-        second_review = await review.respond(f"Please re-review this revised code:\n\n{clean_revised_code}")
+        second_review = await review.respond(f"Please re-review this revised project:{revised_files}")
         print(second_review)
 
         print("\n[Agent Core requesting final verdict after revision...]\n")
@@ -92,9 +106,13 @@ async def main():
         print(second_verdict)
 
         if "yes" in second_verdict.lower():
-            ops.create_file(script_path, clean_revised_code)
-
-            clean_triple_backticks(script_path)
+            for filename, raw_code in revised_files.items():
+                abs_path = os.path.join(project_dir, filename)
+                os.makedirs(os.path.dirname(abs_path), exist_ok=True)
+                clean_code = await sanitizer.sanitize(raw_code)
+                with open(abs_path, "w") as f:
+                    f.write(clean_code)
+                clean_triple_backticks(abs_path)
 
             print("\n[Agent Ops is validating revised code syntax...]\n")
             validation = ops.validate_python_syntax(script_path)
@@ -110,5 +128,7 @@ async def main():
         else:
             print("\n[Agent Ops: Final build still not approved. Halting.]\n")
 
+
 if __name__ == "__main__":
     asyncio.run(main())
+
