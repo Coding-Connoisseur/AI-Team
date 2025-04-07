@@ -5,3 +5,8 @@ real_project
 __pycache__/
 .gitignore
 Design/
+openai.key
+logs/execution_result_2025-04-06_15-59-54.log
+logs/syntax_error_2025-04-06_15-47-31.log
+logs/syntax_error_2025-04-06_15-55-02.log
+projects/gtk_chat_client/chat_client.py
