@@ -1,11 +1,11 @@
 import asyncio
 import datetime
+import os
 from agents.agent_core import AgentCore
 from agents.agent_build import AgentBuild
 from agents.agent_review import AgentReview
 from agents.agent_ops import AgentOps
 from agents.agent_sanitizer import AgentSanitizer
-
 
 def log_to_file(filename, content):
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -14,14 +14,14 @@ def log_to_file(filename, content):
         f.write(content)
     return path
 
-
-def detect_language(task: str) -> str:
-    if any(word in task.lower() for word in ["bash", "shell"]):
-        return "bash"
-    if any(word in task.lower() for word in ["json", "yaml", "api schema"]):
-        return "json"
-    return "python"  # default
-
+def clean_triple_backticks(path):
+    if not os.path.exists(path):
+        return
+    with open(path, "r") as f:
+        lines = f.readlines()
+    cleaned = [line for line in lines if not line.strip().startswith("```")]
+    with open(path, "w") as f:
+        f.writelines(cleaned)
 
 async def main():
     task = input("Enter a task for the team: ")
@@ -30,8 +30,7 @@ async def main():
     build = AgentBuild()
     review = AgentReview()
     ops = AgentOps()
-    language = detect_language(task)
-    sanitizer = AgentSanitizer(language=language)
+    sanitizer = AgentSanitizer("python")
 
     print("\n[Agent Core is planning...]\n")
     plan = await core.respond(f"Break down the task: {task}")
@@ -59,6 +58,8 @@ async def main():
     if "yes" in verdict.lower():
         clean_code = await sanitizer.sanitize(code)
         ops.create_file(script_path, clean_code)
+
+        clean_triple_backticks(script_path)
 
         print("\n[Agent Ops is validating Python syntax before execution...]\n")
         validation = ops.validate_python_syntax(script_path)
@@ -92,6 +93,9 @@ async def main():
 
         if "yes" in second_verdict.lower():
             ops.create_file(script_path, clean_revised_code)
+
+            clean_triple_backticks(script_path)
+
             print("\n[Agent Ops is validating revised code syntax...]\n")
             validation = ops.validate_python_syntax(script_path)
             print(validation)
@@ -105,7 +109,6 @@ async def main():
                 log_to_file("execution_result", result)
         else:
             print("\n[Agent Ops: Final build still not approved. Halting.]\n")
-
 
 if __name__ == "__main__":
     asyncio.run(main())
